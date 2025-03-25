@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Text to PDF Converter - A4 with File Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS for improved UI -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding-top: 20px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 800px;
+    }
+    textarea {
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <centre><h1 class="mb-4">Text to PDF Converter - A4</h1></centre>
+    <div class="mb-3">
+      <label for="fileInput" class="form-label">Upload a text file (.txt):</label>
+      <input type="file" class="form-control" id="fileInput" accept=".txt">
+    </div>
+    <div class="mb-3">
+      <label for="textInput" class="form-label">Or enter your text:</label>
+      <textarea class="form-control" id="textInput" rows="10" placeholder="Type your text here..."></textarea>
+    </div>
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="marginInput" class="form-label">Margin (mm):</label>
+        <input type="number" class="form-control" id="marginInput" value="10">
+      </div>
+      <div class="col-md-4">
+        <label for="textSizeInput" class="form-label">Text Size (pt):</label>
+        <input type="number" class="form-control" id="textSizeInput" value="12">
+      </div>
+    </div>
+    <button id="generateBtn" class="btn btn-primary">Generate PDF</button>
+  </div>
+
+  <!-- jsPDF library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // File input event: read file and populate the text area
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file && file.type === "text/plain") {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('textInput').value = e.target.result;
+        }
+        reader.readAsText(file);
+      } else {
+        alert("Please select a valid .txt file.");
+      }
+    });
+
+    document.getElementById('generateBtn').addEventListener('click', function() {
+      const { jsPDF } = window.jspdf;
+      // Create a new jsPDF instance using A4 size in mm
+      const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Retrieve values from the UI
+      const text = document.getElementById('textInput').value;
+      const margin = parseFloat(document.getElementById('marginInput').value) || 10;
+      const textSize = parseFloat(document.getElementById('textSizeInput').value) || 12;
+
+      // Set the font size
+      doc.setFontSize(textSize);
+
+      // A4 dimensions in mm (width: 210mm, height: 297mm)
+      const pageWidth = 210;
+      const pageHeight = 297;
+
+      // Calculate usable dimensions (margin on all sides)
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+
+      // Split the text into lines that fit within the usable width
+      const lines = doc.splitTextToSize(text, usableWidth);
+
+      // Convert text size from points to millimeters (1pt ≈ 0.3528mm)
+      // and use a multiplier for line spacing
+      const lineHeight = textSize * 0.3528 * 1.2;
+      let cursorY = margin + textSize * 0.3528;
+
+      // Iterate over lines and add them to the document, adding pages as needed
+      lines.forEach(line => {
+        if (cursorY + lineHeight > pageHeight - margin) {
+          doc.addPage('a4');
+          cursorY = margin + textSize * 0.3528;
+        }
+        doc.text(line, margin, cursorY);
+        cursorY += lineHeight;
+      });
+
+      // Save the generated PDF
+      doc.save('document.pdf');
+    });
+  </script>
+  <!-- Optional: Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
